@@ -2,7 +2,6 @@ module github.com/davidandw190/RESTful-api-go
 
 go 1.21.0
 
-require github.com/gofiber/fiber v1.14.6
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
