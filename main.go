@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/davidandw190/RESTful-api-go/db"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -11,10 +12,13 @@ func home(c *fiber.Ctx) error {
 }
 
 func main() {
+
+	db.ConnectDb()
+
 	app := fiber.New()
 
 	app.Get("/api", home)
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":4001"))
 
 }

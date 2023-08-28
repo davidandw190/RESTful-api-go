@@ -3,6 +3,7 @@ package db
 import (
 	"log"
 
+	"github.com/davidandw190/RESTful-api-go/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -21,7 +22,10 @@ func ConnectDb() {
 		log.Fatal("Failed to connect to the database.. \n")
 		db.Logger = logger.Default.LogMode(logger.Info)
 		log.Println("Running migrations...")
-		//TODO: Add migrations
+		db.AutoMigrate(
+			&models.User{},
+			&models.Product{},
+			&models.Order{})
 
 		Database = DbInstance{Db: db}
 
