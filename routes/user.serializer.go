@@ -79,6 +79,43 @@ func GetUser(c *fiber.Ctx) error {
 
 }
 
+func UpdateUser(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+
+	var user models.User
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err.Error())
+	}
+
+	if err := findUser(id, &user); err != nil {
+		return c.Status(http.StatusNotFound).JSON(err.Error())
+	}
+
+	type UpdateUser struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+	}
+
+	var updatedData UpdateUser
+
+	if err := c.BodyParser(&updatedData); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err.Error())
+	}
+
+	user.FirstName = updatedData.FirstName
+	user.LastName = updatedData.LastName
+	user.Email = updatedData.Email
+
+	db.Database.Db.Save(&user)
+
+	responseUser := CreateResponseUser(user)
+
+	return c.Status(http.StatusAccepted).JSON(responseUser)
+
+}
+
 func findUser(id int, user *models.User) error {
 	db.Database.Db.Find(&user, "id=?", id)
 
