@@ -41,3 +41,18 @@ func CreateUser(c *fiber.Ctx) error {
 
 	return c.Status(http.StatusCreated).JSON(responseUser)
 }
+
+func GetAllUsers(c *fiber.Ctx) error {
+	users := []models.User{}
+
+	db.Database.Db.Find(&users)
+	respUsers := make([]UserSerializer, len(users), 0)
+
+	for _, user := range users {
+		rUser := CreateResponseUser(user)
+		respUsers = append(respUsers, rUser)
+
+	}
+
+	return c.Status(http.StatusOK).JSON(respUsers)
+}
