@@ -14,13 +14,19 @@ func home(c *fiber.Ctx) error {
 
 // setupRoutes initializes the API routes.
 func setupRoutes(app *fiber.App) {
+	// home endponts
 	app.Get("/api", home)
 
+	// user endpoints
 	app.Post("/api/users", routes.CreateUser)
 	app.Get("/api/users", routes.GetAllUsers)
 	app.Get("/api/users/:id", routes.GetUser)
 	app.Put("/api/users/:id", routes.UpdateUser)
 	app.Delete("/api/users/:id", routes.DeleteUser)
+
+	// product endpoints
+	app.Post("/api/products", routes.CreateProduct)
+
 }
 
 func main() {
