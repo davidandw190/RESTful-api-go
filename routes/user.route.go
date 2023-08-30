@@ -7,6 +7,7 @@ import (
 	"github.com/davidandw190/RESTful-api-go/db"
 	"github.com/davidandw190/RESTful-api-go/models"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // UserSerializer serializes a User model for response.
@@ -33,11 +34,14 @@ func CreateUser(c *fiber.Ctx) error {
 
 	// Parse user data from the request body.
 	if err := c.BodyParser(&user); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(err.Error())
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	// Create the user in the database.
-	db.Database.Db.Create(&user)
+	if err := db.Database.Db.Create(&user); err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
+	}
+
 	responseUser := CreateResponseUser(user)
 
 	return c.Status(http.StatusCreated).JSON(responseUser)
@@ -48,15 +52,13 @@ func GetAllUsers(c *fiber.Ctx) error {
 	users := []models.User{}
 
 	db.Database.Db.Find(&users)
-	respUsers := make([]UserSerializer, len(users), 0)
 
-	for _, user := range users {
-		rUser := CreateResponseUser(user)
-		respUsers = append(respUsers, rUser)
-
+	responseUsers := make([]UserSerializer, len(users))
+	for i, user := range users {
+		responseUsers[i] = CreateResponseUser(user)
 	}
 
-	return c.Status(http.StatusOK).JSON(respUsers)
+	return c.Status(http.StatusOK).JSON(responseUsers)
 }
 
 // GetUser returns a user in serialised form by id
@@ -66,11 +68,11 @@ func GetUser(c *fiber.Ctx) error {
 	var user models.User
 
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(err.Error)
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
 	if err := findUser(id, &user); err != nil {
-		return c.Status(http.StatusNotFound).JSON(err.Error())
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	responseUser := CreateResponseUser(user)
@@ -86,7 +88,7 @@ func UpdateUser(c *fiber.Ctx) error {
 	var user models.User
 
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(err.Error())
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
 	if err := findUser(id, &user); err != nil {
@@ -109,7 +111,9 @@ func UpdateUser(c *fiber.Ctx) error {
 	user.LastName = updatedData.LastName
 	user.Email = updatedData.Email
 
-	db.Database.Db.Save(&user)
+	if err := db.Database.Db.Save(&user).Error; err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update user"})
+	}
 
 	responseUser := CreateResponseUser(user)
 
@@ -117,24 +121,27 @@ func UpdateUser(c *fiber.Ctx) error {
 
 }
 
+// DeleteUser deletes a user entry from the db by id
 func DeleteUser(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 
 	var user models.User
 
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(err.Error())
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
 	if err := findUser(id, &user); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(err.Error())
 	}
 
-	if err := db.Database.Db.Delete(&user).Error; err != nil {
-		return c.Status(http.StatusBadRequest).JSON(err.Error())
+	if err := db.Database.Db.Delete(&models.User{}, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user"})
 	}
-
-	return c.Status(http.StatusOK).SendString("User deleted successfully!")
+	return c.Status(http.StatusOK).JSON(fiber.Map{"message": "User deleted successfully"})
 
 }
 
