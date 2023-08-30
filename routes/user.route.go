@@ -79,6 +79,7 @@ func GetUser(c *fiber.Ctx) error {
 
 }
 
+// UpdateUser updates a user entry and returns it in serialised form.
 func UpdateUser(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 
@@ -113,6 +114,27 @@ func UpdateUser(c *fiber.Ctx) error {
 	responseUser := CreateResponseUser(user)
 
 	return c.Status(http.StatusAccepted).JSON(responseUser)
+
+}
+
+func DeleteUser(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+
+	var user models.User
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err.Error())
+	}
+
+	if err := findUser(id, &user); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err.Error())
+	}
+
+	if err := db.Database.Db.Delete(&user).Error; err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err.Error())
+	}
+
+	return c.Status(http.StatusOK).SendString("User deleted successfully!")
 
 }
 
