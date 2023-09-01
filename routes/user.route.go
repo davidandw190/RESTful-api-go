@@ -19,7 +19,7 @@ type UserSerializer struct {
 }
 
 // CreateResponseUser creates a UserSerializer from a User model.
-func CreateResponseUser(userModel models.User) UserSerializer {
+func CreateResponseUser(userModel *models.User) UserSerializer {
 	return UserSerializer{
 		ID:        userModel.ID,
 		FirstName: userModel.FirstName,
@@ -42,7 +42,7 @@ func CreateUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create user"})
 	}
 
-	responseUser := CreateResponseUser(user)
+	responseUser := CreateResponseUser(&user)
 
 	return c.Status(http.StatusCreated).JSON(responseUser)
 }
@@ -51,11 +51,13 @@ func CreateUser(c *fiber.Ctx) error {
 func GetAllUsers(c *fiber.Ctx) error {
 	users := []models.User{}
 
-	db.Database.Db.Find(&users)
+	if err := db.Database.Db.Find(&users); err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve users"})
+	}
 
 	responseUsers := make([]UserSerializer, len(users))
 	for i, user := range users {
-		responseUsers[i] = CreateResponseUser(user)
+		responseUsers[i] = CreateResponseUser(&user)
 	}
 
 	return c.Status(http.StatusOK).JSON(responseUsers)
@@ -75,7 +77,7 @@ func GetUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	responseUser := CreateResponseUser(user)
+	responseUser := CreateResponseUser(&user)
 
 	return c.Status(http.StatusAccepted).JSON(responseUser)
 
@@ -115,7 +117,7 @@ func UpdateUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update user"})
 	}
 
-	responseUser := CreateResponseUser(user)
+	responseUser := CreateResponseUser(&user)
 
 	return c.Status(http.StatusAccepted).JSON(responseUser)
 
