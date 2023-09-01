@@ -73,7 +73,7 @@ func GetUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	if err := findUser(id, &user); err != nil {
+	if err := findUserById(id, &user); err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -93,7 +93,7 @@ func UpdateUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	if err := findUser(id, &user); err != nil {
+	if err := findUserById(id, &user); err != nil {
 		return c.Status(http.StatusNotFound).JSON(err.Error())
 	}
 
@@ -133,7 +133,7 @@ func DeleteUser(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	if err := findUser(id, &user); err != nil {
+	if err := findUserById(id, &user); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(err.Error())
 	}
 
@@ -147,7 +147,7 @@ func DeleteUser(c *fiber.Ctx) error {
 
 }
 
-func findUser(id int, user *models.User) error {
+func findUserById(id int, user *models.User) error {
 	db.Database.Db.Find(&user, "id=?", id)
 
 	if user.ID == 0 {

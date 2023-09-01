@@ -9,12 +9,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// ProductSerializer is a struct used to serialize product data to JSON format.
 type ProductSerializer struct {
 	ID           uint   `json:"id"`
 	Name         string `json:"name"`
 	SerialNumber string `json:"serial_num"`
 }
 
+// CreateResponseProduct creates a ProductSerializer from a given product model.
 func CreateResponseProduct(productModel *models.Product) ProductSerializer {
 	return ProductSerializer{
 		ID:           productModel.ID,
@@ -23,6 +25,7 @@ func CreateResponseProduct(productModel *models.Product) ProductSerializer {
 	}
 }
 
+// CreateProduct handles the creation of a new product.
 func CreateProduct(c *fiber.Ctx) error {
 	var product models.Product
 
@@ -35,11 +38,10 @@ func CreateProduct(c *fiber.Ctx) error {
 	}
 
 	responseProduct := CreateResponseProduct(&product)
-
 	return c.Status(http.StatusCreated).JSON(responseProduct)
-
 }
 
+// GetAllProducts retrieves all products from the database and returns them as JSON.
 func GetAllProducts(c *fiber.Ctx) error {
 	products := []models.Product{}
 
@@ -53,9 +55,9 @@ func GetAllProducts(c *fiber.Ctx) error {
 	}
 
 	return c.Status(http.StatusOK).JSON(responseProducts)
-
 }
 
+// GetProduct retrieves a product by its ID and returns it as JSON.
 func GetProduct(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
 	if err != nil {
@@ -69,9 +71,47 @@ func GetProduct(c *fiber.Ctx) error {
 	}
 
 	responseProduct := CreateResponseProduct(&product)
-
 	return c.Status(http.StatusAccepted).JSON(responseProduct)
+}
 
+// UpdateProduct updates a product's information based on the provided JSON data.
+func UpdateProduct(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
+	}
+
+	var product models.Product
+
+	if err := findProductById(id, &product); err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// to hold the updated data from the request
+	type UpdatedProduct struct {
+		Name         string `json:"name"`
+		SerialNumber string `json:"serial_num"`
+	}
+
+	var updatedData UpdatedProduct
+
+	// to the request body into updatedData
+	if err := c.BodyParser(&updatedData); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err.Error())
+	}
+
+	// updating the product's data
+	product.Name = updatedData.Name
+	product.SerialNumber = updatedData.SerialNumber
+
+	// saving the updated product to the database
+	if err := db.Database.Db.Save(&product).Error; err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update product"})
+	}
+
+	// serializing and returning the updated product as JSON
+	responseProduct := CreateResponseProduct(&product)
+	return c.Status(http.StatusAccepted).JSON(responseProduct)
 }
 
 func findProductById(id int, product *models.Product) error {
