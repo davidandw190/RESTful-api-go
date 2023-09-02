@@ -11,7 +11,7 @@ import (
 
 // OrderSerializer is a struct that defines the JSON representation of an order.
 type OrderSerializer struct {
-	ID        uint              `json:"id"`
+	ID        uint64            `json:"id"`
 	User      UserSerializer    `json:"user"`
 	Product   ProductSerializer `json:"product"`
 	CreatedAt time.Time         `json:"order_date"`

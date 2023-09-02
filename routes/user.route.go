@@ -3,6 +3,7 @@ package routes
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/davidandw190/RESTful-api-go/db"
 	"github.com/davidandw190/RESTful-api-go/models"
@@ -12,7 +13,7 @@ import (
 
 // UserSerializer serializes a User model for response.
 type UserSerializer struct {
-	ID        uint   `json:"id"`
+	ID        uint64 `json:"id"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Email     string `json:"email"`
@@ -65,7 +66,8 @@ func GetAllUsers(c *fiber.Ctx) error {
 
 // GetUser returns a user in serialised form by id
 func GetUser(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+	idStr := c.Params("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
 
 	var user models.User
 
@@ -85,7 +87,8 @@ func GetUser(c *fiber.Ctx) error {
 
 // UpdateUser updates a user entry and returns it in serialised form.
 func UpdateUser(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+	idStr := c.Params("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
 
 	var user models.User
 
@@ -125,7 +128,8 @@ func UpdateUser(c *fiber.Ctx) error {
 
 // DeleteUser deletes a user entry from the db by id
 func DeleteUser(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+	idStr := c.Params("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
 
 	var user models.User
 
@@ -147,8 +151,8 @@ func DeleteUser(c *fiber.Ctx) error {
 
 }
 
-func findUserById(id int, user *models.User) error {
-	db.Database.Db.Find(&user, "id=?", id)
+func findUserById(id uint64, user *models.User) error {
+	db.Database.Db.Find(&user, "id = ?", id)
 
 	if user.ID == 0 {
 		return errors.New("User does not exist")

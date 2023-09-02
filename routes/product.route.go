@@ -3,6 +3,7 @@ package routes
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/davidandw190/RESTful-api-go/db"
 	"github.com/davidandw190/RESTful-api-go/models"
@@ -12,7 +13,7 @@ import (
 
 // ProductSerializer is a struct used to serialize product data to JSON format.
 type ProductSerializer struct {
-	ID           uint   `json:"id"`
+	ID           uint64 `json:"id"`
 	Name         string `json:"name"`
 	SerialNumber string `json:"serial_num"`
 }
@@ -60,7 +61,9 @@ func GetAllProducts(c *fiber.Ctx) error {
 
 // GetProduct retrieves a product by its ID and returns it as JSON.
 func GetProduct(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+	idStr := c.Params("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
@@ -77,7 +80,9 @@ func GetProduct(c *fiber.Ctx) error {
 
 // UpdateProduct updates a product's information based on the provided JSON data.
 func UpdateProduct(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+	idStr := c.Params("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
@@ -116,7 +121,8 @@ func UpdateProduct(c *fiber.Ctx) error {
 }
 
 func DeleteProduct(c *fiber.Ctx) error {
-	id, err := c.ParamsInt("id")
+	idStr := c.Params("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
 
 	var product models.Product
 
@@ -137,8 +143,8 @@ func DeleteProduct(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(fiber.Map{"message": "User deleted successfully"})
 }
 
-func findProductById(id int, product *models.Product) error {
-	db.Database.Db.Find(&product, "id=?", id)
+func findProductById(id uint64, product *models.Product) error {
+	db.Database.Db.Find(&product, "id = ?", id)
 
 	if product.ID == 0 {
 		return errors.New("Product does not exist")
