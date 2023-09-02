@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// OrderSerializer is a struct that defines the JSON representation of an order.
 type OrderSerializer struct {
 	ID        uint              `json:"id"`
 	User      UserSerializer    `json:"user"`
@@ -16,6 +17,7 @@ type OrderSerializer struct {
 	CreatedAt time.Time         `json:"order_date"`
 }
 
+// CreateResponseOrder creates a serialized representation of an order.
 func CreateResponseOrder(order *models.Order, user UserSerializer, product ProductSerializer) OrderSerializer {
 	return OrderSerializer{
 		ID:        order.ID,
@@ -25,6 +27,7 @@ func CreateResponseOrder(order *models.Order, user UserSerializer, product Produ
 	}
 }
 
+// CreateOrder handles the creation of a new order.
 func CreateOrder(c *fiber.Ctx) error {
 	var order models.Order
 
@@ -49,4 +52,33 @@ func CreateOrder(c *fiber.Ctx) error {
 	responseOrder := CreateResponseOrder(&order, responseUser, responseProduct)
 
 	return c.Status(http.StatusCreated).JSON(responseOrder)
+}
+
+// GetAllUserOrders retrieves all orders associated with a specific user.
+func GetAllUserOrders(c *fiber.Ctx) error {
+	userId, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+	}
+
+	var user models.User
+	if err := findUserById(userId, &user); err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	var orders []models.Order
+	if err := db.Database.Db.Where("user_referer = ?", userId).Find(&orders).Error; err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve user orders"})
+	}
+
+	responseOrders := []OrderSerializer{}
+	responseUser := CreateResponseUser(&user)
+	for _, o := range orders {
+		var product models.Product
+		db.Database.Db.Find(&product, "id = ?", o.ProductRefer)
+		rOrder := CreateResponseOrder(&o, responseUser, CreateResponseProduct(&product))
+		responseOrders = append(responseOrders, rOrder)
+	}
+
+	return c.Status(http.StatusOK).JSON(responseOrders)
 }
