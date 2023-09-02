@@ -7,6 +7,7 @@ import (
 	"github.com/davidandw190/RESTful-api-go/db"
 	"github.com/davidandw190/RESTful-api-go/models"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // ProductSerializer is a struct used to serialize product data to JSON format.
@@ -112,6 +113,28 @@ func UpdateProduct(c *fiber.Ctx) error {
 	// serializing and returning the updated product as JSON
 	responseProduct := CreateResponseProduct(&product)
 	return c.Status(http.StatusAccepted).JSON(responseProduct)
+}
+
+func DeleteProduct(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+
+	var product models.Product
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
+	}
+
+	if err := findProductById(id, &product); err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if err := db.Database.Db.Delete(&models.User{}, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "User not found"})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to delete user"})
+	}
+	return c.Status(http.StatusOK).JSON(fiber.Map{"message": "User deleted successfully"})
 }
 
 func findProductById(id int, product *models.Product) error {

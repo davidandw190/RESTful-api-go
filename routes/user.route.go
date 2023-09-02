@@ -155,5 +155,4 @@ func findUserById(id int, user *models.User) error {
 	}
 
 	return nil
-
 }
