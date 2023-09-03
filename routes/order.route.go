@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/davidandw190/RESTful-api-go/db"
@@ -36,12 +37,12 @@ func CreateOrder(c *fiber.Ctx) error {
 	}
 
 	var user models.User
-	if err := findUserById(int(order.UserReferer), &user); err != nil {
+	if err := findUserById(order.UserRefer, &user); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	var product models.Product
-	if err := findProductById(int(order.ProductRefer), &product); err != nil {
+	if err := findProductById(order.ProductRefer, &product); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -56,7 +57,9 @@ func CreateOrder(c *fiber.Ctx) error {
 
 // GetAllUserOrders retrieves all orders associated with a specific user.
 func GetAllUserOrders(c *fiber.Ctx) error {
-	userId, err := c.ParamsInt("id")
+	idStr := c.Params("id")
+	userId, err := strconv.ParseUint(idStr, 10, 64)
+
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
 	}
@@ -81,4 +84,39 @@ func GetAllUserOrders(c *fiber.Ctx) error {
 	}
 
 	return c.Status(http.StatusOK).JSON(responseOrders)
+}
+
+func GetUserOrder(c *fiber.Ctx) error {
+	idStr := c.Params("id")
+	userId, err := strconv.ParseUint(idStr, 10, 64)
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+	}
+
+	orderId, err := c.ParamsInt("order_id")
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+	}
+
+	var user models.User
+	if err := findUserById(userId, &user); err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	var order models.Order
+	if err := db.Database.Db.Where("id = ? AND user_referer = ?", orderId, userId).Find(&order).Error; err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Order not found for the specified user"})
+	}
+
+	var product models.Product
+	if err := findProductById(order.ProductRefer, &product); err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	responseUser := CreateResponseUser(&user)
+	responseProduct := CreateResponseProduct(&product)
+	responseOrder := CreateResponseOrder(&order, responseUser, responseProduct)
+
+	return c.Status(http.StatusOK).JSON(responseOrder)
 }
