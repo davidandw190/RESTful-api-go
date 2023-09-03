@@ -34,13 +34,13 @@ func setupRoutes(app *fiber.App) {
 	// order endpoints
 	app.Post("/api/orders", routes.CreateOrder)
 	app.Get("/api/users/:id/orders", routes.GetAllUserOrders)
-	app.Get("api/users/:id/orders/:id", routes.GetUserOrder)
+	app.Get("api/users/:user_id/orders/:order_id", routes.GetUserOrder)
 
 }
 
 func main() {
 	// Connect to the database.
-	db.ConnectDb()
+	db.ConnectDB()
 
 	app := fiber.New()
 

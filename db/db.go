@@ -16,14 +16,14 @@ type DbInstance struct {
 var Database DbInstance
 
 // ConnectDb establishes a connection to the database.
-func ConnectDb() {
+func ConnectDB() {
 	db, err := gorm.Open(sqlite.Open("api.db"), &gorm.Config{})
 
 	if err != nil {
 		log.Fatal("Failed to connect to the database.. \n")
 	}
 
-	log.Println("Running migrations...")
+	log.Println("Running db migrations...")
 	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Product{},
@@ -33,5 +33,4 @@ func ConnectDb() {
 	}
 
 	Database = DbInstance{Db: db}
-
 }
