@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/davidandw190/RESTful-api-go/db"
 	"github.com/davidandw190/RESTful-api-go/models"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // OrderSerializer is a struct that defines the JSON representation of an order.
@@ -86,7 +88,11 @@ func GetAllUserOrders(c *fiber.Ctx) error {
 
 	var orders []models.Order
 	if err := db.Database.Db.Where("user_referer = ?", userID).Find(&orders).Error; err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve user orders"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "No orders found for the given user"})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to query order"})
+
 	}
 
 	responseOrders := []OrderSerializer{}
@@ -126,7 +132,11 @@ func GetUserOrder(c *fiber.Ctx) error {
 
 	var order models.Order
 	if err := db.Database.Db.Where("id = ? AND user_referer = ?", orderID, userID).Preload("Products").Find(&order).Error; err != nil {
-		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Order not found for the specified user"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Order not found"})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to query order"})
+
 	}
 
 	var products []ProductSerializer
@@ -136,6 +146,55 @@ func GetUserOrder(c *fiber.Ctx) error {
 
 	responseUser := CreateResponseUser(&user)
 	responseOrder := CreateResponseOrder(&order, responseUser, products)
+
+	return c.Status(http.StatusOK).JSON(responseOrder)
+}
+
+// UpdateOrder updates a specific order for a user.
+func UpdateOrder(c *fiber.Ctx) error {
+	paramUserId := c.Params("user_id")
+	userID, err := strconv.ParseUint(paramUserId, 10, 64)
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+	}
+
+	paramOrderId := c.Params("order_id")
+	orderID, err := strconv.ParseUint(paramOrderId, 10, 64)
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+	}
+
+	var user models.User
+	if err := findUserByID(userID, &user); err != nil {
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	var order models.Order
+	if err := db.Database.Db.Where("id = ? AND user_referer = ?", orderID, userID).Find(&order).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Order not found"})
+		}
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to query order"})
+	}
+
+	var updateData models.Order
+	if err := c.BodyParser(&updateData); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+	}
+
+	order.Products = updateData.Products
+
+	db.Database.Db.Save(&order)
+
+	var responseProducts []ProductSerializer
+	for _, product := range order.Products {
+		responseProducts = append(responseProducts, CreateResponseProduct(&product))
+	}
+
+	responseUser := CreateResponseUser(&user)
+	responseOrder := CreateResponseOrder(&order, responseUser, responseProducts)
 
 	return c.Status(http.StatusOK).JSON(responseOrder)
 }
