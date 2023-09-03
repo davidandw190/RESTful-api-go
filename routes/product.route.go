@@ -61,8 +61,8 @@ func GetAllProducts(c *fiber.Ctx) error {
 
 // GetProduct retrieves a product by its ID and returns it as JSON.
 func GetProduct(c *fiber.Ctx) error {
-	idStr := c.Params("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	paramID := c.Params("id")
+	id, err := strconv.ParseUint(paramID, 10, 64)
 
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
@@ -70,7 +70,7 @@ func GetProduct(c *fiber.Ctx) error {
 
 	var product models.Product
 
-	if err := findProductById(id, &product); err != nil {
+	if err := findProductByID(id, &product); err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -80,8 +80,8 @@ func GetProduct(c *fiber.Ctx) error {
 
 // UpdateProduct updates a product's information based on the provided JSON data.
 func UpdateProduct(c *fiber.Ctx) error {
-	idStr := c.Params("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	paramID := c.Params("id")
+	id, err := strconv.ParseUint(paramID, 10, 64)
 
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
@@ -89,7 +89,7 @@ func UpdateProduct(c *fiber.Ctx) error {
 
 	var product models.Product
 
-	if err := findProductById(id, &product); err != nil {
+	if err := findProductByID(id, &product); err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -121,8 +121,8 @@ func UpdateProduct(c *fiber.Ctx) error {
 }
 
 func DeleteProduct(c *fiber.Ctx) error {
-	idStr := c.Params("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	paramID := c.Params("id")
+	id, err := strconv.ParseUint(paramID, 10, 64)
 
 	var product models.Product
 
@@ -130,7 +130,7 @@ func DeleteProduct(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
-	if err := findProductById(id, &product); err != nil {
+	if err := findProductByID(id, &product); err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -143,7 +143,7 @@ func DeleteProduct(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(fiber.Map{"message": "User deleted successfully"})
 }
 
-func findProductById(id uint64, product *models.Product) error {
+func findProductByID(id uint64, product *models.Product) error {
 	db.Database.Db.Find(&product, "id = ?", id)
 
 	if product.ID == 0 {

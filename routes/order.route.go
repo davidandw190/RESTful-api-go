@@ -37,12 +37,12 @@ func CreateOrder(c *fiber.Ctx) error {
 	}
 
 	var user models.User
-	if err := findUserById(order.UserRefer, &user); err != nil {
+	if err := findUserByID(order.UserRefer, &user); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	var product models.Product
-	if err := findProductById(order.ProductRefer, &product); err != nil {
+	if err := findProductByID(order.ProductRefer, &product); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -57,20 +57,20 @@ func CreateOrder(c *fiber.Ctx) error {
 
 // GetAllUserOrders retrieves all orders associated with a specific user.
 func GetAllUserOrders(c *fiber.Ctx) error {
-	idStr := c.Params("id")
-	userId, err := strconv.ParseUint(idStr, 10, 64)
+	paramID := c.Params("id")
+	userID, err := strconv.ParseUint(paramID, 10, 64)
 
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
 	}
 
 	var user models.User
-	if err := findUserById(userId, &user); err != nil {
+	if err := findUserByID(userID, &user); err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	var orders []models.Order
-	if err := db.Database.Db.Where("user_referer = ?", userId).Find(&orders).Error; err != nil {
+	if err := db.Database.Db.Where("user_referer = ?", userID).Find(&orders).Error; err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to retrieve user orders"})
 	}
 
@@ -87,30 +87,32 @@ func GetAllUserOrders(c *fiber.Ctx) error {
 }
 
 func GetUserOrder(c *fiber.Ctx) error {
-	idStr := c.Params("id")
-	userId, err := strconv.ParseUint(idStr, 10, 64)
+	paramID := c.Params("user_id")
+	userID, err := strconv.ParseUint(paramID, 10, 64)
 
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
 	}
 
-	orderId, err := c.ParamsInt("order_id")
+	paramID = c.Params("order_id")
+	orderID, err := strconv.ParseUint(paramID, 10, 64)
+
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalID request"})
 	}
 
 	var user models.User
-	if err := findUserById(userId, &user); err != nil {
+	if err := findUserByID(userID, &user); err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	var order models.Order
-	if err := db.Database.Db.Where("id = ? AND user_referer = ?", orderId, userId).Find(&order).Error; err != nil {
+	if err := db.Database.Db.Where("id = ? AND user_referer = ?", orderID, userID).Find(&order).Error; err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": "Order not found for the specified user"})
 	}
 
 	var product models.Product
-	if err := findProductById(order.ProductRefer, &product); err != nil {
+	if err := findProductByID(order.ProductRefer, &product); err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
